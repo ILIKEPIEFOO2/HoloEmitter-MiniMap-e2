@@ -17,35 +17,35 @@ if(first()){
 }
 if(->Emitter & ~Emitter){
     print("Starting")
-    timer("Setup",100)
+    timer("Setup",Settings["RefreshRate",number])
 }
 if(clk("Setup")){
     Runtime["i",number]=0
     Runtime["Slice",number]=360/Settings["Slices",number]
     Runtime["Data",table]=table()
-    timer("Scan",100)
+    timer("Scan",Settings["RefreshRate",number])
 }
 if(clk("Scan")){
     if(Runtime["i",number] < Settings["Slices",number]){
         while(Runtime["i",number] < Settings["Slices",number] &perf(65)){
             Runtime["i",number] = Runtime["i",number]+1
-            local Ang = vec(0, Runtime["Slice",number] * Runtime["i",number] , 0)
+            local Ang = ang(0, Runtime["Slice",number] * Runtime["i",number] , 0)
             
             local RD = rangerOffset(Settings["Range",number],Settings["Subject",entity]:pos(),Ang:forward())
             if(RD:hit()){
                 local ID = Runtime["Data",table]:count()
                 Runtime["Data",table][ID,table] = table(
-                    "Pos"=RD:position(),
-                    "LPos"=toLocal(RD:position(),ang(),Settings["Origin",vector],Settings["origin",angle]),
+                    #"Pos"=RD:position(),
                     "Fraction"=RD:fraction(),
-                    "Normal"=RD:hitNormal()
+                    #"Normal"=RD:hitNormal(),
+                    "LPos"=toLocal(RD:position(),ang(),Settings["Origin",vector],Settings["origin",angle])
                 )
             }
         }
         timer(clkName(),Settings["RefreshRate",number])
     }else{
         #Finished Scanning
-        timer("DisplayData",100)
+        timer("DisplayData",Settings["RefreshRate",number])
     }
 }
 if(clk("DisplayData")){
@@ -68,7 +68,7 @@ if(clk("DisplayData")){
         local Pos=Settings["Subject",entity]:toWorld(vec(0,0,10))
         if(Pos:isInWorld()){
             Settings["Subject",entity]:setPos(Pos)
-            timer("Setup",100)
+            timer("Setup",Settings["RefreshRate",number])
         }else{
             local RD = rangerOffset(5000, Settings["Subject",entity]:toWorld(vec(0,0,-10)),Settings["Subject",entity]:up()*-1)
             Settings["Subject",entity]:setPos(RD:position())
