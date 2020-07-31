@@ -1,0 +1,78 @@
+@name Pie’s Holo Emitter Sketch-up.
+@inputs Emitter:wirelink
+@persist [Settings, Runtime]:table
+if(first()){
+    Settings=table(
+        "Origin"=entity():pos(),
+        "origin"=entity():angles(),
+        "Slices"=30,
+        "Subject"=entity(),
+        "Range"=500,
+        "RefreshRate"=100,
+        "Scale"=0.25
+    )
+    Runtime=table()
+    rangerPersist(1)
+    rangerHitWater(0)
+}
+if(->Emitter & ~Emitter){
+    print("Starting")
+    timer("Setup",100)
+}
+if(clk("Setup")){
+    Runtime["i",number]=0
+    Runtime["Slice",number]=360/Settings["Slices",number]
+    Runtime["Data",table]=table()
+    timer("Scan",100)
+}
+if(clk("Scan")){
+    if(Runtime["i",number] < Settings["Slices",number]){
+        while(Runtime["i",number] < Settings["Slices",number] &perf(65)){
+            Runtime["i",number] = Runtime["i",number]+1
+            local Ang = vec(0, Runtime["Slice",number] * Runtime["i",number] , 0)
+            
+            local RD = rangerOffset(Settings["Range",number],Settings["Subject",entity]:pos(),Ang:forward())
+            if(RD:hit()){
+                local ID = Runtime["Data",table]:count()
+                Runtime["Data",table][ID,table] = table(
+                    "Pos"=RD:position(),
+                    "LPos"=toLocal(RD:position(),ang(),Settings["Origin",vector],Settings["origin",angle]),
+                    "Fraction"=RD:fraction(),
+                    "Normal"=RD:hitNormal()
+                )
+            }
+        }
+        timer(clkName(),Settings["RefreshRate",number])
+    }else{
+        #Finished Scanning
+        timer("DisplayData",100)
+    }
+}
+if(clk("DisplayData")){
+    if(->Emitter){
+        if(Runtime["Data",table]:count()>0){
+            while(Runtime["Data",table]:count()>0 & perf(50)){
+                local Point = Runtime["Data",table]:popTable()
+                Emitter[1]=Point["LPos",vector]:x()*Settings["Scale",number]
+                Emitter[2]=Point["LPos",vector]:y()*Settings["Scale",number]
+                Emitter[3]=Point["LPos",vector]:z()*Settings["Scale",number]
+                Emitter[5]=1
+                Emitter[6]=Point["Fraction",number]*255
+                Emitter[7]=Point["Fraction",number]*255
+                Emitter[8]=Point["Fraction",number]*255
+                Emitter[0]=1
+            }
+            timer(clkName(),Settings["RefreshRate",number])
+        }
+    }else{
+        local Pos=Settings["Subject",entity]:toWorld(vec(0,0,10))
+        if(Pos:isInWorld()){
+            Settings["Subject",entity]:setPos(Pos)
+            timer("Setup",100)
+        }else{
+            local RD = rangerOffset(5000, Settings["Subject",entity]:toWorld(vec(0,0,-10)),Settings["Subject",entity]:up()*-1)
+            Settings["Subject",entity]:setPos(RD:position())
+            print("Finished")
+        }
+    }
+}
